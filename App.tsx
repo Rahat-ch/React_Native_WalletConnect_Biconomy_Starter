@@ -2,12 +2,13 @@ import { Pressable, Text, StyleSheet, View } from 'react-native';
 import { WalletConnectModal, useWalletConnectModal } from '@walletconnect/modal-react-native';
 import { useState } from 'react';
 import { IBundler, Bundler } from '@biconomy/bundler'
-import { BiconomySmartAccount, BiconomySmartAccountConfig, DEFAULT_ENTRYPOINT_ADDRESS } from "@biconomy/account"
+import { BiconomySmartAccountV2, DEFAULT_ENTRYPOINT_ADDRESS } from "@biconomy/account"
+import { ECDSAOwnershipValidationModule, DEFAULT_ECDSA_OWNERSHIP_MODULE } from "@biconomy/modules";
 import { ethers  } from 'ethers'
 import { ChainId } from "@biconomy/core-types"
 
 
-const projectId = '<from wallet connect cloud>';
+const projectId = '';
 
 const providerMetadata = {
   name: 'RN Starter',
@@ -23,10 +24,10 @@ const providerMetadata = {
 function App() {
   const [scwAddress, setScwAddress] = useState<string>("")
   const [loading, setLoading] = useState<boolean>(false);
-  const [smartAccount, setSmartAccount] = useState<BiconomySmartAccount | null>(null);
+  const [smartAccount, setSmartAccount] = useState<BiconomySmartAccountV2 | null>(null);
 const bundler: IBundler = new Bundler({
   bundlerUrl: "<from biconomy dashboard>",
-  chainId: ChainId.BASE_GOERLI_TESTNET,
+  chainId: ChainId.POLYGON_MUMBAI,
   entryPointAddress: DEFAULT_ENTRYPOINT_ADDRESS,
 })
 
@@ -46,14 +47,18 @@ const bundler: IBundler = new Bundler({
         provider,
         "any"
       );
-      const biconomySmartAccountConfig: BiconomySmartAccountConfig = {
+      const module = await ECDSAOwnershipValidationModule.create({
         signer: web3Provider.getSigner(),
-        chainId: ChainId.BASE_GOERLI_TESTNET,
-        bundler: bundler,
-      }
-      let biconomySmartAccount = new BiconomySmartAccount(biconomySmartAccountConfig)
-      biconomySmartAccount =  await biconomySmartAccount.init()
-      setScwAddress( await biconomySmartAccount.getSmartAccountAddress())
+        moduleAddress: DEFAULT_ECDSA_OWNERSHIP_MODULE
+      })
+      let biconomySmartAccount = await BiconomySmartAccountV2.create({
+        chainId: ChainId.POLYGON_MUMBAI,
+        bundler: bundler, 
+        entryPointAddress: DEFAULT_ENTRYPOINT_ADDRESS,
+        defaultValidationModule: module,
+        activeValidationModule: module
+      })
+      setScwAddress( await biconomySmartAccount.getAccountAddress())
       setSmartAccount(biconomySmartAccount)
       setLoading(false)
     } catch (error) {
